@@ -104,14 +104,14 @@ Not all skills are equal. `skill-selection` separates cognitive infrastructure f
 ╚═══════════════════════════════════════════════════════════╝
 ```
 
-Selection adapts dynamically to your context:
+Selection adapts dynamically to your context (the skills below are **illustrative examples only** — `SKILL.md` contains zero hardcoded skill or framework names and works across Systems/Rust/C++, AI/ML, Cloud/Kubernetes, Security, Game Dev, Mobile, and Web):
 
-| Skill | Enterprise Backend PR | Production SaaS UI | 24h Hackathon / Vibecoding |
+| Example Skill Type | Enterprise Backend PR | Production SaaS UI | 24h Hackathon / Vibecoding |
 |---|:---:|:---:|:---:|
-| `test-driven-development` | Active | Active | Suppressed |
-| `verification-before-completion` | Active | Active | Suppressed |
-| `ui-ux-pro-max` | Suppressed | Active | Active |
-| `ponytail` (minimal/shortcut mode) | Suppressed | Suppressed | Active |
+| Verification / Testing Skill | Active | Active | Suppressed |
+| Pre-Merge Audit Skill | Active | Active | Suppressed |
+| Frontend / Design System Skill | Suppressed | Active | Active |
+| Rapid Minimal-Code Skill | Suppressed | Suppressed | Active |
 
 ---
 
