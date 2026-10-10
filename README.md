@@ -4,13 +4,13 @@
 
 **Stop your AI agent from fighting itself.**
 
-A dynamic skill orchestrator that scans your environment, classifies each skill<br>
-as infrastructure or project-specific, and locks a minimal manifest — so the agent<br>
-uses only what the current project needs.
+A zero-latency environment orchestrator that classifies your installed skills<br>
+into protected infrastructure vs. project-specific rules, locks the minimum set<br>
+needed for your current task, and silences everything else.
 
-**Zero hardcoded skill names. Fully dynamic. Works on any platform.**
+**Zero hardcoded skill names. In-memory discovery. Native cross-session persistence.**
 
-[Why This Exists](#the-problem) · [Installation](#installation) · [Usage](#usage) · [How It Works](#how-it-works) · [Configuration](#configuration) · [FAQ](#faq)
+[The Problem](#the-problem) · [Why It's Different](#how-skill-selection-differs-from-task-orchestrators) · [Installation](#installation) · [Usage](#usage) · [How It Works](#how-it-works) · [Configuration](#configuration) · [FAQ](#faq)
 
 </div>
 
@@ -18,113 +18,105 @@ uses only what the current project needs.
 
 ## The Problem
 
-You install 20+ skills to cover design, testing, debugging, mobile, backend, and AI/ML. Then you start a project and your AI agent:
+Whether you are working in an **enterprise polyglot monorepo** or sprinting in a **24-hour hackathon**, installing 15+ agent skills creates **prompt pollution**:
 
-- **Applies 5 competing CSS philosophies** — brutalist grids mixed with minimalist cards mixed with glassmorphism
-- **Writes unit tests during a hackathon** — burning 3 hours on test scaffolding during a 24-hour prototype sprint
-- **Loads irrelevant skill instructions** — consuming thousands of context window tokens on skills that have nothing to do with the current task
-- **Produces Frankenstein output** — inconsistent code that tries to satisfy every installed skill simultaneously
-
-This is **prompt pollution** — the #1 quality killer in modern agentic coding environments.
+- **Monorepo & Microservice Context Bleed:** You are refactoring a Python/Go backend service or Terraform infrastructure, but your React, Tailwind, and frontend animation skills keep firing and polluting the context window.
+- **Competing Style & Architecture Doctrines:** Multiple UI skills (`ui-ux-pro-max`, `design-taste-frontend`, `minimalist-ui`, `industrial-brutalist-ui`) compete in the same prompt, producing inconsistent "Frankenstein" components.
+- **Methodology Collisions (Production vs. Prototype):** Strict TDD, git-worktree, and E2E testing skills fire during rapid prototyping sprints — or conversely, shortcut/minimalist skills fire during critical production PRs.
+- **Token & Latency Bloat:** Every unnecessary skill read by the agent burns thousands of context tokens and degrades reasoning accuracy.
 
 ---
 
-## How `skill-selection` Differs from Other Orchestrators
+## How `skill-selection` Differs from Task Orchestrators
 
-Most existing "skill orchestrators" are **task routers** — they break a prompt into subtasks and route Step 1 to Skill A and Step 2 to Skill B. They still leave all 30+ skills active in your environment to collide with each other.
+Most existing "skill orchestrators" are **task routers** — they decompose a prompt into subtasks and route Step 1 to Skill A and Step 2 to Skill B, while leaving all 30+ skills active in your environment to collide with each other.
 
 **They orchestrate execution. `skill-selection` orchestrates the environment.**
 
-| Feature | Traditional Task Orchestrators | `skill-selection` |
+| Feature | Traditional Task Orchestrators | `skill-selection` (v1.1) |
 |---|---|---|
 | **Core Question** | *"Which skill handles step 3?"* | *"Which skills should even exist in this session?"* |
-| **Competing UI / Style Skills** | Left active (causes CSS bleed) | **Hard-suppressed** (1 skill per domain rule) |
-| **Infrastructure Protection** | Treats all skills the same | **Auto-protects** memory, code graphs, MCPs & reasoning |
-| **Token Footprint** | High (loads multiple playbooks) | **Minimal** (silences unused skills upfront) |
-| **Hardcoded Catalog?** | Often tied to a specific skill repo | **Zero hardcoded names** (scans your live disk) |
-
----
-
-## The Solution
-
-`skill-selection` creates a hard skill lock after planning and before code execution begins:
-
-```
-  Your Plan ──► /skill-selection ──► Locked Manifest ──► Focused Execution
-```
-
-It scans every installed skill on your machine, classifies each one, activates only what the project needs, and suppresses everything else.
+| **Discovery Latency** | Scans disk files on every run (slow) | **In-memory system prompt inspection first (0 tool calls)** |
+| **Competing Domain Skills** | Left active (causes style/rule bleed) | **Hard-suppressed** (strict 1-skill-per-domain lock) |
+| **Infrastructure Protection** | Treats all skills identically | **Auto-protects** memory, code graphs, MCPs & reasoning |
+| **Cross-Session Persistence** | Lost when opening a new chat | **Writes native standing rules** (`.agents/rules/`, `.cursor/rules/`) |
+| **Prompt Payload Size** | Heavy catalog indices | **Lean ~8 KB LLM-only spec** (zero human-doc bloat) |
 
 ---
 
 ## How It Works
 
+```
+  Your Plan / Task ──► /skill-selection ──► Locked Manifest + Standing Rule ──► Focused Execution
+```
+
 ### The Four Phases
 
 ```
-Phase 1: PLAN        Read the implementation plan or project description
+Phase 1: PLAN        Identify target component, tech stack, and mode (Production vs. Sprint)
                      ↓
-Phase 2: DISCOVER    Scan all installed skills, plugins, and MCP servers
+Phase 2: DISCOVER    Read in-context system registry first (0 disk I/O); fallback to disk scan
                      ↓
-Phase 3: CLASSIFY    Sort each into INFRASTRUCTURE or PROJECT
+Phase 3: CLASSIFY    Sort every item into PROTECTED INFRASTRUCTURE or PROJECT SKILL
                      ↓
-Phase 4: LOCK        Select minimum necessary, suppress the rest
+Phase 4: LOCK        Activate 1 skill per needed domain, silence the rest, persist standing rule
 ```
 
-### The Two Categories (The Protected Layer)
+### The Protected Infrastructure Layer
 
-Not all skills are equal. Every skill in your environment falls into one of two categories:
+Not all skills are equal. `skill-selection` separates cognitive infrastructure from project rules:
 
-| | Infrastructure | Project |
+| | Infrastructure (`[PROTECTED]`) | Project (`[ACTIVE]` / `[SUPPRESSED]`) |
 |---|---|---|
-| **Purpose** | Makes the agent *think, remember, and navigate* | Directs *what gets built and how it looks* |
-| **Examples** | Memory enhancers, reasoning engines, code graphs, output enforcement, MCP servers | UI themes, testing methodologies (TDD), framework conventions, slide/brand generators |
-| **Scope** | Needed on **every** project | Needed on **some** projects, harmful on others |
-| **Suppressible?** | **Never — auto-protected** | **Yes — selected per project** |
+| **Purpose** | Enhances how the agent *thinks, remembers, and navigates* | Directs *what gets built, styled, or tested* |
+| **Examples** | Memory enhancers, `sequential-thinking`, `code-review-graph`, output quality gates, all MCP servers | UI themes, CSS rules, TDD workflows, framework conventions, slide/brand generators |
+| **Scope** | Needed on **every** project | Helpful on **some** tasks, harmful on others |
+| **Suppressible?** | **Never — auto-protected** | **Yes — selected dynamically per task** |
 
-**Infrastructure skills are never suppressed.** This guarantees that running `/skill-selection` will never accidentally disable your memory enhancer, codebase knowledge graph, or reasoning engine.
+**Infrastructure is never suppressed.** Running `/skill-selection` will never disable your codebase knowledge graph, memory enhancer, or MCP servers.
 
 ### Example Output
 
 ```
 ╔═══════════════════════════════════════════════════════════╗
-║         SKILL MANIFEST — AI Voice Assistant               ║
+║         SKILL MANIFEST — Payment Service API              ║
 ╠═══════════════════════════════════════════════════════════╣
 ║                                                           ║
 ║  [PROTECTED] Infrastructure — always active:              ║
-║    • sequential-thinking — Deep reasoning for API logic   ║
-║    • code-review-graph — Codebase navigation              ║
+║    • sequential-thinking — Multi-step architecture logic  ║
+║    • code-review-graph — AST dependency & impact analysis ║
 ║    • full-output-enforcement — Prevents placeholder code  ║
+║    • MCP: github-mcp-server — PR and repository tools     ║
 ║                                                           ║
 ║  [ACTIVE] Selected for this build:                        ║
-║    • ui-ux-pro-max — Dashboard design system              ║
-║    • ponytail — Minimal code for hackathon speed          ║
+║    • test-driven-development — Production payment logic   ║
+║    • verification-before-completion — Pre-merge checks    ║
 ║                                                           ║
 ║  [SUPPRESSED] Silenced for this session:                  ║
-║    • industrial-brutalist-ui — Wrong aesthetic            ║
-║    • gpt-taste — Competing CSS philosophy                 ║
-║    • test-driven-development — Hackathon, no TDD          ║
-║    • (17 more suppressed...)                              ║
+║    • ui-ux-pro-max — Backend service (no UI in scope)     ║
+║    • design-taste-frontend — Backend service (no CSS)     ║
+║    • ponytail — Production payment code requires rigor    ║
+║    • (18 more suppressed...)                              ║
 ║                                                           ║
 ╠═══════════════════════════════════════════════════════════╣
-║  Total: 3 protected | 2 active | 20 suppressed            ║
+║  Total: 4 protected | 2 active | 21 suppressed            ║
 ╚═══════════════════════════════════════════════════════════╝
 ```
 
-The same skill can be active in one project and suppressed in another — selection adapts dynamically to your project context:
+Selection adapts dynamically to your context:
 
-| Skill | 24h Hackathon | Production SaaS |
-|---|:---:|:---:|
-| `ponytail` (minimal/lazy code) | Active | Suppressed |
-| `test-driven-development` | Suppressed | Active |
-| `verification-before-completion` | Suppressed | Active |
-| `ui-ux-pro-max` | Active | Active |
+| Skill | Enterprise Backend PR | Production SaaS UI | 24h Hackathon Sprint |
+|---|:---:|:---:|:---:|
+| `test-driven-development` | Active | Active | Suppressed |
+| `verification-before-completion` | Active | Active | Suppressed |
+| `ui-ux-pro-max` | Suppressed | Active | Active |
+| `ponytail` (minimal/shortcut mode) | Suppressed | Suppressed | Active |
 
 ---
 
 ## Installation
 
-Choose your coding platform below and copy-paste the commands for your operating system.
+Choose your platform below and run the commands for your OS.
 
 ### 1. Google Antigravity / Gemini CLI
 
@@ -159,8 +151,6 @@ git clone https://github.com/Yuggohel2/skill-selection.git
 New-Item -ItemType Directory -Path ".claude\commands" -Force
 Copy-Item "skill-selection\SKILL.md" -Destination ".claude\commands\skill-selection.md" -Force
 ```
-
-*(Alternatively, append the contents to your root `CLAUDE.md` file: `cat skill-selection/SKILL.md >> CLAUDE.md`)*
 
 ---
 
@@ -202,55 +192,57 @@ Copy-Item "skill-selection\SKILL.md" -Destination ".windsurf\rules\skill-selecti
 
 ### 5. Any Other Platform
 
-Copy `SKILL.md` into whatever directory your AI coding assistant scans for skills, rules, or custom instructions (`AGENTS.md`, `.agents/skills/`, etc.). It is a single self-contained file with zero external dependencies.
+Copy `SKILL.md` into your platform's custom skill or rules directory (`.agents/skills/skill-selection/SKILL.md`, `AGENTS.md`, etc.). It is a single self-contained file with zero external dependencies.
 
 ---
 
 ## Usage
 
-### Step 1: Describe your project or lock your plan
+### 1. Define your task or plan
+Describe your feature, architecture, or sprint goal (or run `/plan` or `/grill-me`).
 
-```text
-I'm building a real-time AI voice assistant with a Next.js dashboard
-and Supabase backend. This is for a 24-hour hackathon.
-```
-
-*(Or use `/grill-me` or `/plan` first to finalize your architecture).*
-
-### Step 2: Run skill-selection
-
+### 2. Run `/skill-selection`
 ```text
 /skill-selection
 ```
+The agent inspects its in-context skill registry (or scans disk if needed), classifies every skill, and outputs the proposed manifest.
 
-The agent will scan your installed skills, classify them into Infrastructure vs. Project, and present the manifest for your approval.
-
-### Step 3: Confirm and build
-
-Review the manifest. Reply **go** to lock it, or customize it on the fly:
-
+### 3. Approve and lock
+Reply **go** to lock the manifest, or adjust on the fly:
 ```text
-/skill-selection add slides      # Add pitch deck generation mid-sprint
-/skill-selection drop ponytail   # Switch from minimal mode to thorough mode
+/skill-selection add slides      # Activate slide generator mid-session
+/skill-selection drop ponytail   # Switch back to full production rigor
 ```
 
 ### Command Reference
 
 | Command | Action |
 |---|---|
-| `/skill-selection` | Run full workflow: discover, classify, select, lock |
-| `/skill-selection add <name>` | Add a suppressed skill to the active manifest |
-| `/skill-selection drop <name>` | Remove an active project skill (blocked for protected infrastructure) |
+| `/skill-selection` | Run full workflow: plan check → discover → classify → select → lock |
+| `/skill-selection add <name>` | Move a suppressed skill into `[ACTIVE]` and update lock files |
+| `/skill-selection drop <name>` | Move an `[ACTIVE]` project skill into `[SUPPRESSED]` (blocked for `[PROTECTED]`) |
 | `/skill-selection status` | Display the current active manifest |
-| `/skill-selection reset` | Clear the lock and restore all installed skills |
+| `/skill-selection reset` | Clear the lock and delete `.skill-manifest.json` + standing rule file |
 
 ---
 
-## Configuration
+## Cross-Session Persistence & Configuration
+
+### How Cross-Session Persistence Works (v1.1)
+
+When you approve a manifest, `skill-selection` writes two files:
+1. **`.skill-manifest.json`** — Structured state in your workspace root.
+2. **A Native Standing Rule File** — Written directly to your platform's auto-loaded workspace rules path:
+   - **Antigravity / Gemini CLI:** `.agents/rules/skill-lock.md` (`trigger: always_on`)
+   - **Cursor:** `.cursor/rules/skill-lock.mdc` (`alwaysApply: true`)
+   - **Claude Code:** `.claude/rules/skill-lock.md`
+   - **Windsurf:** `.windsurf/rules/skill-lock.md`
+
+Because your IDE natively loads standing workspace rules on every new chat, **your skill lock automatically survives across conversation restarts** without requiring you to re-run `/skill-selection`. Running `/skill-selection reset` cleanly removes both files.
 
 ### Permanent Overrides: `.skill-selection.json`
 
-Create `.skill-selection.json` in your workspace root or global config directory to define permanent classification rules:
+Create `.skill-selection.json` in your workspace root or global config directory to enforce permanent classification overrides:
 
 ```json
 {
@@ -266,14 +258,8 @@ Create `.skill-selection.json` in your workspace root or global config directory
 
 | Field | Behavior |
 |---|---|
-| `always_protected` | Treated as infrastructure — never suppressed on any project |
+| `always_protected` | Treated as `[PROTECTED]` infrastructure — never suppressed on any project |
 | `always_suppressed` | Always silenced — never activated even if it matches the project |
-
-Manual overrides take absolute precedence over heuristic classification.
-
-### Workspace Persistence: `.skill-manifest.json`
-
-Once locked, the active manifest is saved to `.skill-manifest.json` in your project root so it persists across sessions. Commit `.skill-manifest.json` to git if you want teammates to share the exact same skill lock.
 
 ---
 
@@ -281,29 +267,31 @@ Once locked, the active manifest is saved to `.skill-manifest.json` in your proj
 
 | Platform | Suppression Mechanism | Token Savings | Conflict Prevention |
 |---|---|---|---|
-| **Antigravity / Gemini CLI** | Progressive disclosure — suppressed skills are never read or loaded into context | **10,000 – 40,000 tokens saved/session** | Near system-level isolation |
-| **Claude Code** | Prompt-level suppression directive + subagent scoping | Moderate | High |
-| **Cursor / Windsurf** | Prompt-level suppression over pre-loaded `.mdc` rules | Minimal (if rules are `alwaysApply`) | High (stops conflicting rule execution) |
+| **Antigravity / Gemini CLI** | Progressive disclosure + `.agents/rules/skill-lock.md` — suppressed skills are never read into context | **10,000 – 40,000 tokens saved/session** | Near system-level isolation |
+| **Claude Code** | Standing rule lock + subagent context scoping | Moderate to High | High |
+| **Cursor / Windsurf** | `.cursor/rules/skill-lock.mdc` override directive | Moderate (stops on-demand rule reads) | High (prevents competing rule execution) |
 
 ---
 
-## Safety Guarantees
+## FAQ
 
-1. **Infrastructure is untouchable.** Memory enhancers, reasoning engines, code graphs, MCP servers, and output quality gates are auto-protected.
-2. **Confirmation before lock.** Nothing is silenced without showing you the manifest and getting your confirmation first.
-3. **Zero hardcoded skill names.** Classification reads actual skill descriptions dynamically.
-4. **Trivial-task bypass.** Won't waste your time generating a manifest for a 10-second typo or color fix unless explicitly invoked.
-5. **Instant reset.** `/skill-selection reset` restores default behavior immediately.
-6. **Self-preserving.** `skill-selection` can never suppress or lock itself out.
+**Does `/skill-selection` waste time scanning my hard drive on every run?**  
+No. In v1.1, Phase 2 inspects the agent's in-context system prompt registry first (`<skills>` and `<mcp_servers>`), completing discovery in **zero tool calls**. It only falls back to filesystem scanning on platforms that do not expose a skill index in the system prompt.
+
+**Why is `SKILL.md` so much smaller than `README.md`?**  
+By design. `README.md` is documentation for humans; `SKILL.md` is the prompt payload read by the LLM. All human-only FAQs and installation guides are kept strictly out of `SKILL.md` so the skill consumes minimal context tokens (~8 KB) when activated.
+
+**When should I NOT use this?**  
+For trivial one-line edits (fixing a typo, changing a hex color, renaming a variable). `skill-selection` includes a built-in pre-check that automatically bypasses manifest generation on micro-edits unless you explicitly invoke `/skill-selection`.
 
 ---
 
 ## Examples
 
-Explore complete sample manifests in [`examples/`](./examples):
+See [`examples/`](./examples) for complete sample manifests:
 
-- [**Hackathon Manifest**](./examples/hackathon-manifest.md) — 24-hour AI voice app sprint (4 protected, 2 active, 21 suppressed)
-- [**Production SaaS Manifest**](./examples/production-manifest.md) — Multi-tenant analytics app (6 protected, 5 active, 10 suppressed)
+- [**Production SaaS Manifest**](./examples/production-manifest.md) — Multi-tenant analytics dashboard with TDD, code review, and pre-merge verification
+- [**Hackathon Sprint Manifest**](./examples/hackathon-manifest.md) — 24-hour AI voice app sprint with minimal code and maximum speed
 
 ---
 

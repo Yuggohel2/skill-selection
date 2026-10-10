@@ -10,5 +10,9 @@ desktop.ini
 *.swo
 *~
 
-# Generated manifests (user-specific)
+# Generated skill-selection state (optional to commit for teams)
 .skill-manifest.json
+.agents/rules/skill-lock.md
+.cursor/rules/skill-lock.mdc
+.claude/rules/skill-lock.md
+.windsurf/rules/skill-lock.md
