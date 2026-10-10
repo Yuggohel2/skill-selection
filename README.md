@@ -10,7 +10,7 @@ needed for your current task, and silences everything else.
 
 **Zero hardcoded skill names. In-memory discovery. Native cross-session persistence.**
 
-[The Problem](#the-problem) · [Why It's Different](#how-skill-selection-differs-from-task-orchestrators) · [Installation](#installation) · [Usage](#usage) · [How It Works](#how-it-works) · [Configuration](#configuration) · [FAQ](#faq)
+[The Problem](#the-problem) · [Why It's Different](#how-skill-selection-differs-from-task-orchestrators) · [Installation](#installation) · [Usage](#usage) · [How It Works](#how-it-works) · [Configuration](#built-for-long-term-daily-use-v12-features) · [FAQ](#faq)
 
 </div>
 
@@ -18,7 +18,7 @@ needed for your current task, and silences everything else.
 
 ## The Problem
 
-Whether you are working in an **enterprise polyglot monorepo** or sprinting in a **24-hour hackathon**, installing 15+ agent skills creates **prompt pollution**:
+Whether you are working in an **enterprise polyglot monorepo**, shipping as an **indie hacker / vibecoder**, or sprinting in a **24-hour hackathon**, installing 15+ agent skills creates **prompt pollution**:
 
 - **Monorepo & Microservice Context Bleed:** You are refactoring a Python/Go backend service or Terraform infrastructure, but your React, Tailwind, and frontend animation skills keep firing and polluting the context window.
 - **Competing Style & Architecture Doctrines:** Multiple UI skills (`ui-ux-pro-max`, `design-taste-frontend`, `minimalist-ui`, `industrial-brutalist-ui`) compete in the same prompt, producing inconsistent "Frankenstein" components.
@@ -33,14 +33,15 @@ Most existing "skill orchestrators" are **task routers** — they decompose a pr
 
 **They orchestrate execution. `skill-selection` orchestrates the environment.**
 
-| Feature | Traditional Task Orchestrators | `skill-selection` (v1.1) |
+| Feature | Traditional Task Orchestrators | `skill-selection` (v1.2) |
 |---|---|---|
 | **Core Question** | *"Which skill handles step 3?"* | *"Which skills should even exist in this session?"* |
 | **Discovery Latency** | Scans disk files on every run (slow) | **In-memory system prompt inspection first (0 tool calls)** |
 | **Competing Domain Skills** | Left active (causes style/rule bleed) | **Hard-suppressed** (strict 1-skill-per-domain lock) |
 | **Infrastructure Protection** | Treats all skills identically | **Auto-protects** memory, code graphs, MCPs & reasoning |
 | **Cross-Session Persistence** | Lost when opening a new chat | **Writes native standing rules** (`.agents/rules/`, `.cursor/rules/`) |
-| **Prompt Payload Size** | Heavy catalog indices | **Lean ~8 KB LLM-only spec** (zero human-doc bloat) |
+| **Scope-Shift Protection** | None | **Warns you** if you switch tasks while an old lock suppresses needed skills |
+| **Git Tree Hygiene** | Leaves untracked files in `git status` | **Auto-excludes via `.git/info/exclude`** (never touches team `.gitignore`) |
 
 ---
 
@@ -105,7 +106,7 @@ Not all skills are equal. `skill-selection` separates cognitive infrastructure f
 
 Selection adapts dynamically to your context:
 
-| Skill | Enterprise Backend PR | Production SaaS UI | 24h Hackathon Sprint |
+| Skill | Enterprise Backend PR | Production SaaS UI | 24h Hackathon / Vibecoding |
 |---|:---:|:---:|:---:|
 | `test-driven-development` | Active | Active | Suppressed |
 | `verification-before-completion` | Active | Active | Suppressed |
@@ -198,17 +199,19 @@ Copy `SKILL.md` into your platform's custom skill or rules directory (`.agents/s
 
 ## Usage
 
-### 1. Define your task or plan
-Describe your feature, architecture, or sprint goal (or run `/plan` or `/grill-me`).
-
-### 2. Run `/skill-selection`
+### Standard Mode (Review Before Locking)
 ```text
 /skill-selection
 ```
-The agent inspects its in-context skill registry (or scans disk if needed), classifies every skill, and outputs the proposed manifest.
+The agent inspects its in-context skill registry, classifies every skill, displays the manifest box, and waits for you to reply **go** before locking.
 
-### 3. Approve and lock
-Reply **go** to lock the manifest, or adjust on the fly:
+### Fast Mode (Zero-Turn Lock & Build)
+```text
+/skill-selection fast
+```
+Locks the manifest immediately without waiting for a confirmation turn and starts executing your build right away. Ideal once you trust the classifier.
+
+### Mid-Session Adjustments
 ```text
 /skill-selection add slides      # Activate slide generator mid-session
 /skill-selection drop ponytail   # Switch back to full production rigor
@@ -218,7 +221,8 @@ Reply **go** to lock the manifest, or adjust on the fly:
 
 | Command | Action |
 |---|---|
-| `/skill-selection` | Run full workflow: plan check → discover → classify → select → lock |
+| `/skill-selection` | Full workflow: plan check → discover → classify → review → lock |
+| `/skill-selection fast` | Instant lock without waiting for a confirmation turn |
 | `/skill-selection add <name>` | Move a suppressed skill into `[ACTIVE]` and update lock files |
 | `/skill-selection drop <name>` | Move an `[ACTIVE]` project skill into `[SUPPRESSED]` (blocked for `[PROTECTED]`) |
 | `/skill-selection status` | Display the current active manifest |
@@ -226,23 +230,26 @@ Reply **go** to lock the manifest, or adjust on the fly:
 
 ---
 
-## Cross-Session Persistence & Configuration
+## Built for Long-Term Daily Use (v1.2 Features)
 
-### How Cross-Session Persistence Works (v1.1)
+### 1. Scope-Shift Guardrail (No "Forgotten Lock" Bugs)
+What happens if you lock backend skills on Monday, and on Thursday in the same repo you ask the agent to *"build the pricing page UI"*?  
+Instead of silently building an unstyled page because UI skills were suppressed 3 days ago, the standing rule triggers a **Scope-Shift Alert**:
+```text
+[SCOPE SHIFT] You requested frontend UI work, but ui-ux-pro-max is currently suppressed by your active lock. Run '/skill-selection add ui-ux-pro-max' to enable it, or tell me to proceed without it.
+```
 
-When you approve a manifest, `skill-selection` writes two files:
-1. **`.skill-manifest.json`** — Structured state in your workspace root.
-2. **A Native Standing Rule File** — Written directly to your platform's auto-loaded workspace rules path:
-   - **Antigravity / Gemini CLI:** `.agents/rules/skill-lock.md` (`trigger: always_on`)
-   - **Cursor:** `.cursor/rules/skill-lock.mdc` (`alwaysApply: true`)
-   - **Claude Code:** `.claude/rules/skill-lock.md`
-   - **Windsurf:** `.windsurf/rules/skill-lock.md`
+### 2. Clean `git status` via `.git/info/exclude`
+When working in corporate or client repositories, you cannot pollute the shared `.gitignore` with personal AI config files. `skill-selection` automatically appends `.skill-manifest.json` and the standing rule path to `.git/info/exclude` (Git's local-only ignore file), keeping your `git status` 100% clean.
 
-Because your IDE natively loads standing workspace rules on every new chat, **your skill lock automatically survives across conversation restarts** without requiring you to re-run `/skill-selection`. Running `/skill-selection reset` cleanly removes both files.
+### 3. Overrides Aggressive Third-Party `<EXTREMELY-IMPORTANT>` Tags
+Some third-party skill packs wrap their triggers in `<EXTREMELY-IMPORTANT>` tags to force execution on every turn. `skill-selection` stamps its lock as an explicit **User-Level Instruction**, which by platform hierarchy (`User Instructions > Skills`) legally supersedes mandatory tags inside suppressed plugins.
 
-### Permanent Overrides: `.skill-selection.json`
+### 4. True Cross-Session Persistence
+When locked, `skill-selection` writes both `.skill-manifest.json` and a native auto-loaded workspace rule (`.agents/rules/skill-lock.md`, `.cursor/rules/skill-lock.mdc`, `.claude/rules/skill-lock.md`, or `.windsurf/rules/skill-lock.md`) so new chats enforce your lock automatically from turn one.
 
-Create `.skill-selection.json` in your workspace root or global config directory to enforce permanent classification overrides:
+### 5. Permanent Overrides: `.skill-selection.json`
+Create `.skill-selection.json` in your workspace root or global config directory to enforce permanent classification rules:
 
 ```json
 {
@@ -255,11 +262,6 @@ Create `.skill-selection.json` in your workspace root or global config directory
   ]
 }
 ```
-
-| Field | Behavior |
-|---|---|
-| `always_protected` | Treated as `[PROTECTED]` infrastructure — never suppressed on any project |
-| `always_suppressed` | Always silenced — never activated even if it matches the project |
 
 ---
 
@@ -276,7 +278,7 @@ Create `.skill-selection.json` in your workspace root or global config directory
 ## FAQ
 
 **Does `/skill-selection` waste time scanning my hard drive on every run?**  
-No. In v1.1, Phase 2 inspects the agent's in-context system prompt registry first (`<skills>` and `<mcp_servers>`), completing discovery in **zero tool calls**. It only falls back to filesystem scanning on platforms that do not expose a skill index in the system prompt.
+No. Phase 2 inspects the agent's in-context system prompt registry first (`<skills>` and `<mcp_servers>`), completing discovery in **zero tool calls**. It only falls back to filesystem scanning on platforms that do not expose a skill index in the system prompt.
 
 **Why is `SKILL.md` so much smaller than `README.md`?**  
 By design. `README.md` is documentation for humans; `SKILL.md` is the prompt payload read by the LLM. All human-only FAQs and installation guides are kept strictly out of `SKILL.md` so the skill consumes minimal context tokens (~8 KB) when activated.
